@@ -1,0 +1,21 @@
+[package]
+name = "ping-template"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+pnet = "0.34.0"
+socket2 = "0.5.1"
+tokio = { version = "1.32.0", features = ["full"] }
+rand = "0.8.5"
+clap = { version = "4.1.6", features = ["derive"] }
+thiserror = "1.0.46"
+futures = "0.3.28"
+log = "0.4.20"
+env_logger = "0.10.0"
+console-subscriber = "0.1.10"
+
+[features]
+ENABLE_EMULATE_PAYLOAD = []
