@@ -3,7 +3,6 @@ use crate::connection_handle::ConnectionHandle;
 use pnet::packet::{icmp::{echo_request::MutableEchoRequestPacket, echo_reply::EchoReplyPacket, IcmpTypes, IcmpCode, IcmpPacket}, Packet, ipv4::Ipv4Packet};
 use socket2::{Socket, SockAddr, Domain, Type, Protocol};
 use thiserror::Error;
-use tokio::{time::Instant, task::JoinHandle};
 
 #[derive(Error, Debug)]
 pub enum NetError {
@@ -35,8 +34,6 @@ pub enum NetError {
 type Result<T, E = NetError> = std::result::Result<T, E>;
 
 pub struct PingNet;
-pub type ConnectionHandleResult = Result<ConnectionHandle, NetError>;
-pub type ConnectionJoinHandle = JoinHandle<Result<ConnectionHandle, NetError>>;
 
 pub type RecvRespond = (Ipv4Addr, u16);
 
@@ -53,24 +50,21 @@ impl PingNet {
         socket.bind(&sock_addr).map_err(|e| NetError::SocketBindError(e.to_string()))?;
         Ok(Arc::new(socket))
     }
-    
-    pub fn send_ping_request(socket: Arc<Socket>, connection_handle: ConnectionHandle) -> Result<ConnectionHandle> {
-        let addr = connection_handle.get_sock_addr();
+
+    pub fn send_ping_request(socket: Arc<Socket>, connection_handle: ConnectionHandle) -> Result<()> {
+        let addr = &connection_handle.destination;
         let seq_num = connection_handle.seq;
         let identifier = connection_handle.identifier;
 
-        log::debug!("send_ping_request: seq_num: {}: [ {} ] - started", seq_num, connection_handle);
+        log::debug!("send_ping_request: seq_num: {} - started", seq_num);
 
         let mut buf = [0u8; MutableEchoRequestPacket::minimum_packet_size()];
         let packet = PingNet::create_icmp_request_packet(&mut buf, seq_num, identifier);
-        socket.send_to(&packet.packet(), &addr).map_err(|e| NetError::IcpmSendError(e.to_string()))?;
+        socket.send_to(packet.packet(), addr).map_err(|e| NetError::IcpmSendError(e.to_string()))?;
         
-        let now = Instant::now();
-        let connection_handle = connection_handle.to_sent(now);
+        log::debug!("send_ping_request: seq_num: {} - finished", seq_num);
 
-        log::debug!("send_ping_request: seq_num: {}: [ {} ] - finished", seq_num, connection_handle);
-
-        Ok(connection_handle)
+        Ok(())
     }
 
     pub async fn recv_ping_respond(socket: Arc<Socket>) -> Option<RecvRespond> {

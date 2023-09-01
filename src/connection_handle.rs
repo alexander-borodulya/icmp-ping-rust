@@ -24,11 +24,10 @@ impl Display for EchoStatus {
     }
 }
 
-
-
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct ConnectionHandle {
-    pub destination: Ipv4Addr,
+    pub destination_ipv4: Ipv4Addr,
+    pub destination: SockAddr,
     pub seq: u16,
     pub identifier: u16,
     pub earlier: Instant,
@@ -38,38 +37,20 @@ pub struct ConnectionHandle {
 }
 
 impl ConnectionHandle {
-    pub fn new(destination: Ipv4Addr, seq: u16, identifier: u16, earlier: Instant, now: Instant) -> Self {
+    pub fn new(destination_ipv4: Ipv4Addr, seq: u16, identifier: u16, earlier: Instant, now: Instant, status: EchoStatus) -> Self {
+        let socket_addr_v4 = SocketAddrV4::new(destination_ipv4, 0);
+        let destination = SockAddr::from(socket_addr_v4);
         let elapsed_micros = now.duration_since(earlier).as_micros();
-        Self { destination, seq, identifier, earlier, now, elapsed_micros, status: EchoStatus::Pending }
-    }
-
-    pub fn new_sent(destination: Ipv4Addr, seq: u16, identifier: u16, earlier: Instant, now: Instant) -> Self {
-        let elapsed_micros = now.duration_since(earlier).as_micros();
-        Self { destination, seq, identifier, earlier, now, elapsed_micros, status: EchoStatus::Sent }
-    }
-
-    pub fn new_received(destination: Ipv4Addr, seq: u16, identifier: u16, earlier: Instant, now: Instant) -> Self {
-        let elapsed_micros = now.duration_since(earlier).as_micros();
-        Self { destination, seq, identifier, earlier, now, elapsed_micros, status: EchoStatus::Received }
-    }
-
-    pub fn to_sent(self, now: Instant) -> Self {
-        ConnectionHandle::new_sent(self.destination, self.seq, self.identifier, self.earlier, now)
+        Self { destination_ipv4, destination, seq, identifier, earlier, now, elapsed_micros, status }
     }
 
     pub fn to_received(self, now: Instant) -> Self {
-        ConnectionHandle::new_received(self.destination, self.seq, self.identifier, self.earlier, now)
+        Self::new(self.destination_ipv4, self.seq, self.identifier, self.earlier, now, EchoStatus::Received)
     }
-
-    pub fn get_sock_addr(&self) -> SockAddr {
-        let socket_addr_v4 = SocketAddrV4::new(self.destination, 0);
-        SockAddr::from(socket_addr_v4)
-    }
-
 }
 
 impl Display for ConnectionHandle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{},{},{} - {}", self.destination, self.seq, self.elapsed_micros, self.status)
+        write!(f, "{},{},{} - {}", self.destination_ipv4, self.seq, self.elapsed_micros, self.status)
     }
 }
