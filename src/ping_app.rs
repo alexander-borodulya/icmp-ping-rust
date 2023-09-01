@@ -2,9 +2,9 @@ use std::{sync::Arc, time::Duration, collections::HashMap, pin::Pin};
 
 use futures::{Future, stream::FuturesUnordered, StreamExt};
 
-use tokio::{time::{self, Instant, Timeout, error::Elapsed}, task::{self, JoinHandle}, sync::{Mutex, mpsc}};
+use tokio::{time::{self, Instant, Timeout}, task::{self, JoinHandle}, sync::{Mutex, mpsc}};
 
-use crate::{cli_args::CliArgs, ping_net::PingNet, utils::{self}, connection_handle::{ConnectionHandle, EchoStatus}, config::ICMP_ECHO_TIMEOUT_DURATION_SECONDS};
+use crate::{cli_args::CliArgs, ping_net::PingNet, utils::{self}, connection_handle::{ConnectionHandle, EchoStatus}};
 
 use thiserror::Error;
 
@@ -30,13 +30,9 @@ type EchoSubTaskResult<T, E = RunError> = std::result::Result<T, E>;
 
 pub type ConnectionHandleMap = HashMap<u16, ConnectionHandle>;
 
-type SendFutureOutputType = ConnectionHandle;
-type TimedFutureOutputType = Pin<Box<dyn Future<Output = Result<SendFutureOutputType, Elapsed>> + Send>>;
-type WrappedTimedSendFutureOutputType = (u16, TimedFutureOutputType);
-
 type RecvFutureOutputType = (u16, Timeout<JoinHandle<EchoSubTaskResult<ConnectionHandle>>>);
 
-type MpscSendOutputType = Pin<Box<dyn Future<Output=WrappedTimedSendFutureOutputType> + Send>>;
+type MpscSendOutputType = u16;
 type MpscRecvOutputType = Pin<Box<dyn Future<Output=RecvFutureOutputType> + Send>>;
 
 pub async fn run(args: CliArgs) {
@@ -164,19 +160,36 @@ pub async fn run(args: CliArgs) {
 
         for _seq_num in 0..ping_count {
             log::info!("send_channel_task: rx_send await...");
-            if let Some(send_future_timed) = rx_send.recv().await {
-
-                let send_future_timed_wrapped = send_future_timed.await;
-                let (seq_num_send, send_future_timed_future) = send_future_timed_wrapped;
+            if let Some(seq_num_send) = rx_send.recv().await {
                 log::info!("send_channel_task: rx_send await ready: seq_num_send {}", seq_num_send);
                 
                 let tx_recv = tx_recv.clone();
                 let conn_map_task_send = conn_map_task_send.clone();
                 let socket_recv = socket_recv.clone();
-
                 let send_future_timed_task = task::spawn(async move {
-                    let send_future_timed_result = send_future_timed_future.await;
-                    let connection_handle_send = match send_future_timed_result {
+
+                    let conn_map = conn_map_task_send.clone();
+                    let socket = socket_recv.clone();
+                    let send_future = async move {
+                        let earlier = Instant::now();
+                        let conn_handle = ConnectionHandle::new(destination_ipv4, seq_num_send, identifier, earlier, earlier, EchoStatus::Pending);
+                        {
+                            let mut conn_map = conn_map.lock().await;
+                            let new_entry = conn_map.entry(seq_num_send).or_insert(conn_handle.clone());
+                            log::debug!("send_task: new entry: seq_num: {}, status: {}", seq_num_send, new_entry.status);
+                        }
+            
+                        #[cfg(feature = "ENABLE_EMULATE_PAYLOAD")]
+                        utils::emulate_payload_delay(seq_num_send).await;
+            
+                        PingNet::send_ping_request(socket, conn_handle).expect("Send Failed");
+            
+                        let now = Instant::now();
+                        ConnectionHandle::new(destination_ipv4, seq_num_send, identifier, earlier, now, EchoStatus::Sent)
+                    };
+                    let send_future_timed = utils::timeout_future(send_future).await;
+
+                    let connection_handle_send = match send_future_timed {
                         Ok(send_future_result) => send_future_result,
                         Err(err) => {
                             println!("{},{},time out", destination_ipv4, seq_num_send);
@@ -198,7 +211,7 @@ pub async fn run(args: CliArgs) {
                             return (seq_num_send, seq_status);
                         },
                     };
-                    
+
                     // Update map - On send success
                     {
                         let mut conn_map = conn_map_task_send.lock().await;
@@ -259,7 +272,7 @@ pub async fn run(args: CliArgs) {
                     });
 
                     // Make timed ICMP reply task
-                    let recv_task_timed = time::timeout(ICMP_ECHO_TIMEOUT_DURATION_SECONDS, recv_task);
+                    let recv_task_timed = utils::timeout_future(recv_task);
 
                     // Make wrapped timed ICMP reply future - to identify sequence number of a task that has timed out on the receiver side
                     let recv_task_timed_wrapped = async move {
@@ -299,36 +312,7 @@ pub async fn run(args: CliArgs) {
     
     for seq_num in 0..ping_count {
         log::info!("Scheduling seq_num: {}...", seq_num);
-
-        let socket = Arc::clone(&socket);
-        let conn_map = Arc::clone(&conn_map);
-
-        let send_future = async move {
-            let earlier = Instant::now();
-            let conn_handle = ConnectionHandle::new(destination_ipv4, seq_num, identifier, earlier, earlier, EchoStatus::Pending);
-            {
-                let mut conn_map = conn_map.lock().await;
-                let new_entry = conn_map.entry(seq_num).or_insert(conn_handle.clone());
-                log::debug!("send_task: new entry: seq_num: {}, status: {}", seq_num, new_entry.status);
-            }
-
-            #[cfg(feature = "ENABLE_EMULATE_PAYLOAD")]
-            utils::emulate_payload_delay(seq_num).await;
-
-            PingNet::send_ping_request(socket, conn_handle).expect("Send Failed");
-
-            let now = Instant::now();
-            ConnectionHandle::new(destination_ipv4, seq_num, identifier, earlier, now, EchoStatus::Sent)
-        };
-        let send_task_timed = utils::timeout_future(send_future);
-        let send_task_timed_wrapped = async move {
-            let send_task_timed_pin: TimedFutureOutputType = Box::pin(send_task_timed);
-            (seq_num, send_task_timed_pin)
-        };
-
-        let p: MpscSendOutputType = Box::pin(send_task_timed_wrapped);
-        tx_send.send(p).await.expect("Send failed");
-
+        tx_send.send(seq_num).await.expect("Send failed");
         utils::interval_tick(seq_num, ping_count, &mut interval).await;
     }
 
