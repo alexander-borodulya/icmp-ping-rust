@@ -139,3 +139,34 @@ impl PingNet {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use tokio::time::Instant;
+
+    use crate::connection_handle::EchoStatus;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn test_send_recv_icpm_echo() {
+        let socket = PingNet::create_socket().expect("Socket creation failed");
+
+        let destination_ipv4 = Ipv4Addr::new(127, 0, 0, 1);
+        let seq = 1;
+        let identifier = 1;
+        let earlier = Instant::now();
+        let now = Instant::now();
+        let status = EchoStatus::Pending;
+
+        let connection_handle = ConnectionHandle::new(destination_ipv4, seq, identifier, earlier, now, status);
+
+        let send_result = PingNet::send_ping_request(Arc::clone(&socket), connection_handle).expect("Send request failed");
+        assert_eq!(send_result, ());
+        
+        let socket = Arc::clone(&socket);
+        
+        let recv_result = PingNet::recv_ping_respond(socket.clone()).await;
+        assert_eq!(recv_result, Some((destination_ipv4, seq)));
+    }
+}
