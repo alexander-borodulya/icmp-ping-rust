@@ -1,0 +1,93 @@
+[config]
+skip_core_tasks = true
+
+# Profile based environment override
+[env.development]
+BUILD_DEBUG = true
+TARGET_PROFILE_DIR_NAME = "debug"
+
+[env.production]
+BUILD_RELEASE = true
+TARGET_PROFILE_DIR_NAME = "release"
+
+#
+# Installs dependencies
+#
+[tasks.install_rustfmt_nightly]
+private = true
+description = "Installs nightly toolchain - Required by rustfmt options"
+category = "Dependencies"
+script = ["rustup toolchain install nightly"]
+
+#
+# Format
+#
+
+[tasks.format]
+private = true
+description = "Apply formatting"
+category = "build"
+script = ["cargo +nightly fmt"]
+
+#
+# Build
+#
+
+[tasks.rebuild]
+description = "Rebuild the project"
+category = "build"
+run_task = "build"
+dependencies = ["clean"]
+
+[tasks.build]
+description = "Builds current project"
+category = "build"
+run_task = [
+    { name = "build_development", condition = { env_true = [ "BUILD_DEBUG" ] } },
+    { name = "build_production", condition = { env_true = [ "BUILD_RELEASE" ] } },
+]
+# dependencies = ["format"]
+
+[tasks.build_development]
+private = true
+description = "Builds current project in development mode"
+category = "build"
+command = "cargo"
+args = ["build"]
+
+[tasks.build_production]
+private = true
+description = "Builds current project in production mode"
+category = "build"
+command = "cargo"
+args = ["build", "--release"]
+
+[tasks.clean]
+description = "Cleans project (both build and release)"
+category = "build"
+command = "cargo"
+args = ["clean"]
+
+#
+# setcap cap_net_admin
+#
+
+[tasks.setcap]
+description = "Set CAP_NET_RAW capabilities being used for RAW sockets. Requires root privileges for running."
+category = "post-build"
+run_task = [
+    { name = "setcap_linux", condition = { platforms = [ "linux" ] } },
+    { name = "setcap_platform_unsupported", condition = { platforms = [ "windows", "mac" ] } },
+]
+
+[tasks.setcap_linux]
+private = true
+script = [
+    "sudo sudo setcap cap_net_raw+ep target/${TARGET_PROFILE_DIR_NAME}/${CARGO_MAKE_CRATE_NAME}"
+]
+
+[tasks.setcap_platform_unsupported]
+private = true
+script = [
+    "echo \"Setting of CAP_NET_RAW capabilities for the [${CARGO_MAKE_CRATE_NAME}] crate isn't implemented yet on the [${CARGO_MAKE_RUST_TARGET_OS}] platform\"",
+]
