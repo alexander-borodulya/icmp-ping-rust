@@ -64,10 +64,12 @@ Use the following command to build the binary:
 > `cargo make build`
 
 ### Step 2: Grant Privilege
+
 Use the following command to grant the necessary privilege:
 
-> `sudo cargo make setcap`
+> `cargo make setcap`
 
+<i>The task will run the `setcap` command with sudo, requiring a user password.</i>
 
 
 # Testing

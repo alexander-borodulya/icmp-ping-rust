@@ -76,7 +76,7 @@ run_task = [
     { name = "build_development", condition = { env_true = [ "BUILD_DEBUG" ] } },
     { name = "build_production", condition = { env_true = [ "BUILD_RELEASE" ] } },
 ]
-dependencies = ["clippy"]
+dependencies = ["clippy", "format"]
 
 [tasks.build_development]
 private = true
@@ -113,7 +113,7 @@ run_task = [
 [tasks.setcap_linux]
 private = true
 script = [
-    "sudo sudo setcap cap_net_raw+ep target/${TARGET_PROFILE_DIR_NAME}/${CARGO_MAKE_CRATE_NAME}"
+    "sudo setcap cap_net_raw+ep target/${TARGET_PROFILE_DIR_NAME}/${CARGO_MAKE_CRATE_NAME}"
 ]
 dependencies = ["build"]
 
