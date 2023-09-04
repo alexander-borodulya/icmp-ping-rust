@@ -28,12 +28,19 @@ description = "Installs clippy"
 category = "Dependencies"
 script = ["rustup component add clippy"]
 
+[tasks.install_rustfmt]
+private = true
+description = "Installs rustfmt"
+category = "Dependencies"
+script = ["rustup component add rustfmt"]
+
 [tasks.install_dependencies]
 description = "Installs all required dependencies"
 category = "dependencies"
 run_task = [
     { name = "install_nightly" },
     { name = "install_clippy" },
+    { name = "install_rustfmt"}
 ]
 
 #
