@@ -1,7 +1,9 @@
 [config]
 skip_core_tasks = true
 
+#
 # Profile based environment override
+#
 [env.development]
 BUILD_DEBUG = true
 TARGET_PROFILE_DIR_NAME = "debug"
@@ -13,11 +15,26 @@ TARGET_PROFILE_DIR_NAME = "release"
 #
 # Installs dependencies
 #
-[tasks.install_rustfmt_nightly]
+
+[tasks.install_nightly]
 private = true
-description = "Installs nightly toolchain - Required by rustfmt options"
+description = "Installs nightly toolchain - Installing the nightly toolchain is necessary by rustfmt options that available for nightly only"
 category = "Dependencies"
 script = ["rustup toolchain install nightly"]
+
+[tasks.install_clippy]
+private = true
+description = "Installs clippy"
+category = "Dependencies"
+script = ["rustup component add clippy"]
+
+[tasks.install_dependencies]
+description = "Installs all required dependencies"
+category = "dependencies"
+run_task = [
+    { name = "install_nightly" },
+    { name = "install_clippy" },
+]
 
 #
 # Format
@@ -33,8 +50,14 @@ script = ["cargo +nightly fmt"]
 # Build
 #
 
+[tasks.clippy]
+description = "Checks a package to catch common mistakes using clippy"
+category = "build"
+command = "cargo"
+args = ["clippy"]
+
 [tasks.rebuild]
-description = "Rebuild the project"
+description = "Rebuild the project (clean, then build)"
 category = "build"
 run_task = "build"
 dependencies = ["clean"]
@@ -46,7 +69,7 @@ run_task = [
     { name = "build_development", condition = { env_true = [ "BUILD_DEBUG" ] } },
     { name = "build_production", condition = { env_true = [ "BUILD_RELEASE" ] } },
 ]
-# dependencies = ["format"]
+dependencies = ["clippy"]
 
 [tasks.build_development]
 private = true
@@ -63,13 +86,13 @@ command = "cargo"
 args = ["build", "--release"]
 
 [tasks.clean]
-description = "Cleans project (both build and release)"
+description = "Cleans project (both debug and release)"
 category = "build"
 command = "cargo"
 args = ["clean"]
 
 #
-# setcap cap_net_admin
+# setcap CAP_NET_RAW
 #
 
 [tasks.setcap]
@@ -85,6 +108,7 @@ private = true
 script = [
     "sudo sudo setcap cap_net_raw+ep target/${TARGET_PROFILE_DIR_NAME}/${CARGO_MAKE_CRATE_NAME}"
 ]
+dependencies = ["build"]
 
 [tasks.setcap_platform_unsupported]
 private = true
