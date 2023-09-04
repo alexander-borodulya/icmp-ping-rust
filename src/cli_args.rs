@@ -1,14 +1,13 @@
-use clap::{Parser, error::ErrorKind};
-
 pub use crate::config::Config;
+use clap::{error::ErrorKind, Parser};
 
 #[derive(Debug, Parser)]
 pub struct CliArgs {
-    /// The input argument is a single line in CSV format as follows: 
-    /// 
+    /// The input argument is a single line in CSV format as follows:
+    ///
     /// 1.1.1.1,3,1000
-    /// 
-    /// Where the first column is the IPv4 address, the second column is the number of requests to send, 
+    ///
+    /// Where the first column is the IPv4 address, the second column is the number of requests to send,
     /// and the third column is the interval in milliseconds between sent requests.
     #[arg(value_parser = ConfigParser)]
     pub config: Config,

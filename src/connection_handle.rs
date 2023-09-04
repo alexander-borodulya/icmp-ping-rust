@@ -1,6 +1,8 @@
-use std::{net::{Ipv4Addr, SocketAddrV4}, fmt::Display};
-
 use socket2::SockAddr;
+use std::{
+    fmt::Display,
+    net::{Ipv4Addr, SocketAddrV4},
+};
 use tokio::time::Instant;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -37,20 +39,47 @@ pub struct ConnectionHandle {
 }
 
 impl ConnectionHandle {
-    pub fn new(destination_ipv4: Ipv4Addr, seq: u16, identifier: u16, earlier: Instant, now: Instant, status: EchoStatus) -> Self {
+    pub fn new(
+        destination_ipv4: Ipv4Addr,
+        seq: u16,
+        identifier: u16,
+        earlier: Instant,
+        now: Instant,
+        status: EchoStatus,
+    ) -> Self {
         let socket_addr_v4 = SocketAddrV4::new(destination_ipv4, 0);
         let destination = SockAddr::from(socket_addr_v4);
         let elapsed_micros = now.duration_since(earlier).as_micros();
-        Self { destination_ipv4, destination, seq, identifier, earlier, now, elapsed_micros, status }
+        Self {
+            destination_ipv4,
+            destination,
+            seq,
+            identifier,
+            earlier,
+            now,
+            elapsed_micros,
+            status,
+        }
     }
 
     pub fn to_received(self, now: Instant) -> Self {
-        Self::new(self.destination_ipv4, self.seq, self.identifier, self.earlier, now, EchoStatus::Received)
+        Self::new(
+            self.destination_ipv4,
+            self.seq,
+            self.identifier,
+            self.earlier,
+            now,
+            EchoStatus::Received,
+        )
     }
 }
 
 impl Display for ConnectionHandle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{},{},{} - {}", self.destination_ipv4, self.seq, self.elapsed_micros, self.status)
+        write!(
+            f,
+            "{},{},{} - {}",
+            self.destination_ipv4, self.seq, self.elapsed_micros, self.status
+        )
     }
 }

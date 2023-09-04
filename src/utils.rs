@@ -1,9 +1,10 @@
-use std::sync::Arc;
-
-use futures::Future;
-use tokio::{time::{self, Instant}, sync::Mutex};
-
 use crate::{config::ICMP_ECHO_TIMEOUT_DURATION_SECONDS, ping_app::ConnectionHandleMap};
+use futures::Future;
+use std::sync::Arc;
+use tokio::{
+    sync::Mutex,
+    time::{self, Instant},
+};
 
 #[cfg(feature = "ENABLE_EMULATE_PAYLOAD")]
 pub async fn emulate_payload_delay(seq: u16) {
@@ -30,7 +31,11 @@ where
     time::timeout(ICMP_ECHO_TIMEOUT_DURATION_SECONDS, future)
 }
 
-pub async fn interval_tick(seq_num: u16, ping_count: u16, interval: &mut time::Interval) -> Option<Instant> {
+pub async fn interval_tick(
+    seq_num: u16,
+    ping_count: u16,
+    interval: &mut time::Interval,
+) -> Option<Instant> {
     if seq_num < ping_count - 1 {
         Some(interval.tick().await)
     } else {

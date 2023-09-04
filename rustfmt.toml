@@ -1,12 +1,12 @@
 # Specifies which edition is used by the parser.
 edition = "2021"
 
+# Controls the strategy for grouping sets of consecutive imports. Imports may contain newlines between imports and still be grouped together as a single set, but other statements between imports will result in different grouping sets.
+group_imports="One"
+
 # Controls how imports are structured in use statements. Imports will be merged or split to the configured level of granularity.
 # Nightly
 imports_granularity="Crate"
-
-# Maximum width of the args of a function-like attributes before falling back to vertical formatting.
-attr_fn_like_width=80
 
 # Where to put a binary operator when a binary expression goes multiline.
 binop_separator="Front"
@@ -15,56 +15,49 @@ binop_separator="Front"
 brace_style="SameLineWhere"
 
 # Whether to use colored output or not.
-color="Auto"
+color="Always"
 
-# Combine control expressions with function calls.
-# Follow the url to see examples: https://rust-lang.github.io/rustfmt/?version=v1.5.1&search=#combine_control_expr
-combine_control_expr=false
+# This option can be used to simplify the management and bulk updates of the granular width configuration settings (fn_call_width, attr_fn_like_width, struct_lit_width, struct_variant_width, array_width, chain_width, single_line_if_else_max_width), that respectively control when formatted constructs are multi-lined/vertical based on width.
+use_small_heuristics="Max"
 
-# The maximum length of enum variant having discriminant, that gets vertically aligned with others. Variants without discriminants would be ignored for the purpose of alignment.
-# Example: https://rust-lang.github.io/rustfmt/?version=v1.5.1&search=#enum_discrim_align_threshold
-enum_discrim_align_threshold=20
+# Maximum width of the args of a function call before falling back to vertical formatting.
+fn_call_width=60
 
-# Format code snippet included in doc comments.
-format_code_in_doc_comments=true
+# Put single-expression functions on a single line
+fn_single_line=false
 
-# Max width for code snippets included in doc comments. Only used if format_code_in_doc_comments is true.
-doc_comment_code_block_width=80
-
-# Format the metavariable matching patterns in macros.
-# format_macro_matchers=true
+# Always print the abi for extern items
+force_explicit_abi=true
 
 # Use tab characters for indentation, spaces for alignment
 hard_tabs=false
 
+# Indent style of imports
+imports_indent="Block"
+
 # Item layout inside a imports block
 imports_layout="HorizontalVertical"
 
-# Indent on expressions or items.
-indent_style="Block"
-
-# Put a trailing comma after a block based match arm (non-block arms are not affected)
-match_block_trailing_comma=true
-
-# Maximum width of each line
-max_width=120
-
-# Convert /* */ comments to // comments where possible
-normalize_comments=true
-
-# Convert #![doc] and #[doc] attributes to //! and /// doc comments.
-normalize_doc_attributes=true
-
-# When structs, slices, arrays, and block/array-like macros are used as the last argument in an expression list, allow them to overflow (like blocks/closures) instead of being indented on a new line.
-overflow_delimited_expr=true
-
 # Reorder impl items. type and const are put first, then macros and methods.
-# https://rust-lang.github.io/rustfmt/?version=v1.5.1&search=#reorder_impl_items
 reorder_impl_items=true
 
 # Reorder import and extern crate statements alphabetically in groups (a group is separated by a newline).
 reorder_imports=true
 
-# Controls the strategy for how consecutive imports are grouped together.
-# Controls the strategy for grouping sets of consecutive imports. Imports may contain newlines between imports and still be grouped together as a single set, but other statements between imports will result in different grouping sets.
-group_imports="One"
+# Reorder mod declarations alphabetically in group.
+reorder_modules=true
+
+# Leave a space after the colon.
+space_after_colon=true
+
+# Number of spaces per tab
+tab_spaces=4
+
+# How to handle trailing commas for lists
+trailing_comma="Vertical"
+
+# Use field initialize shorthand if possible.
+use_field_init_shorthand=true
+
+# Forces the where clause to be laid out on a single line.
+where_single_line=false
