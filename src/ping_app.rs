@@ -290,7 +290,7 @@ impl PingApp {
                                 );
                             }
 
-                            #[cfg(feature = "ENABLE_EMULATE_PAYLOAD")]
+                            #[cfg(feature = "ENABLE_EMULATE_DELAY")]
                             utils::emulate_payload_delay(seq_num_send).await;
 
                             PingNet::send_ping_request(socket, conn_handle)
@@ -351,7 +351,7 @@ impl PingApp {
 
                         // Once a send request is finished we can spawn a task to receive the echo reply
                         let recv_task = task::spawn(async move {
-                            #[cfg(feature = "ENABLE_EMULATE_PAYLOAD")]
+                            #[cfg(feature = "ENABLE_EMULATE_DELAY")]
                             utils::emulate_payload_delay(seq_num_send).await;
 
                             let recv_reply = PingNet::recv_ping_respond(socket_recv).await;

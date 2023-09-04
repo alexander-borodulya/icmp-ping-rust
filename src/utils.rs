@@ -6,7 +6,7 @@ use tokio::{
     time::{self, Instant},
 };
 
-#[cfg(feature = "ENABLE_EMULATE_PAYLOAD")]
+#[cfg(feature = "ENABLE_EMULATE_DELAY")]
 pub async fn emulate_payload_delay(seq: u16) {
     let delay_seconds = match seq {
         0 => 3,

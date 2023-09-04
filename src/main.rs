@@ -1,5 +1,5 @@
 use clap::Parser;
-use ping_template::{cli_args::CliArgs, ping_app, utils};
+use icmp_ping_rs::{cli_args::CliArgs, ping_app, utils};
 
 #[tokio::main]
 async fn main() {
