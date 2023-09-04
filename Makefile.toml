@@ -38,7 +38,10 @@ script = ["rustup component add clippy"]
 private = true
 description = "Installs rustfmt"
 category = "Dependencies"
-script = ["rustup component add rustfmt"]
+script = [
+    "rustup component add rustfmt --toolchain nightly",
+    "rustup component add rustfmt"
+]
 
 [tasks.install_dependencies]
 description = "Installs all required dependencies"
