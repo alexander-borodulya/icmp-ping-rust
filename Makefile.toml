@@ -44,10 +44,7 @@ script = ["rustup component add rustfmt"]
 description = "Installs all required dependencies"
 category = "dependencies"
 run_task = [
-    { name = "install_nightly" },
-    { name = "install_tokio_console" },
-    { name = "install_clippy" },
-    { name = "install_rustfmt"}
+    { name = ["install_nightly", "install_tokio_console", "install_clippy", "install_rustfmt"] }
 ]
 
 #
