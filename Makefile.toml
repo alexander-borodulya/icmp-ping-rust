@@ -13,7 +13,7 @@ BUILD_RELEASE = true
 TARGET_PROFILE_DIR_NAME = "release"
 
 #
-# Installs dependencies
+# Install Dependencies
 #
 
 [tasks.install_nightly]
@@ -21,6 +21,12 @@ private = true
 description = "Installs nightly toolchain - Installing the nightly toolchain is necessary by rustfmt options that available for nightly only"
 category = "Dependencies"
 script = ["rustup toolchain install nightly"]
+
+[tasks.install_tokio_console]
+private = true
+description = "Install tokio console - a debugger for asynchronous Rust programs"
+category = "Dependencies"
+script = ["cargo install --locked tokio-console"]
 
 [tasks.install_clippy]
 private = true
@@ -39,6 +45,7 @@ description = "Installs all required dependencies"
 category = "dependencies"
 run_task = [
     { name = "install_nightly" },
+    { name = "install_tokio_console" },
     { name = "install_clippy" },
     { name = "install_rustfmt"}
 ]
@@ -62,6 +69,7 @@ description = "Checks a package to catch common mistakes using clippy"
 category = "build"
 command = "cargo"
 args = ["clippy"]
+condition = { profiles = ["production"] }
 
 [tasks.rebuild]
 description = "Rebuild the project (clean, then build)"
