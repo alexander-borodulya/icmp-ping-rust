@@ -1,4 +1,4 @@
-use crate::connection_handle::ConnectionHandle;
+use crate::echo_handle::EchoHandle;
 use pnet::packet::{
     icmp::{
         echo_reply::EchoReplyPacket,
@@ -66,10 +66,7 @@ impl PingNet {
         Ok(Arc::new(socket))
     }
 
-    pub fn send_ping_request(
-        socket: Arc<Socket>,
-        connection_handle: ConnectionHandle,
-    ) -> Result<()> {
+    pub fn send_ping_request(socket: Arc<Socket>, connection_handle: EchoHandle) -> Result<()> {
         let addr = &connection_handle.destination;
         let seq_num = connection_handle.seq;
         let identifier = connection_handle.identifier;
@@ -202,7 +199,7 @@ impl PingNet {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::connection_handle::EchoStatus;
+    use crate::echo_handle::EchoStatus;
     use tokio::time::Instant;
 
     #[tokio::test]
@@ -215,7 +212,7 @@ mod tests {
         let status = EchoStatus::Pending;
 
         let connection_handle =
-            ConnectionHandle::new(destination_ipv4, seq, identifier, earlier, now, status);
+            EchoHandle::new(destination_ipv4, seq, identifier, earlier, now, status);
 
         let socket = PingNet::create_socket().expect("create_socket failed");
 

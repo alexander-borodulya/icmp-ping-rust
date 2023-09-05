@@ -1,4 +1,4 @@
-use crate::{config::ICMP_ECHO_TIMEOUT_DURATION_SECONDS, ping_app::ConnectionHandleMap};
+use crate::{config::ICMP_ECHO_TIMEOUT_DURATION_SECONDS, ping_app::EchoHandleMap};
 use futures::Future;
 use std::sync::Arc;
 use tokio::{
@@ -43,7 +43,7 @@ pub async fn interval_tick(
     }
 }
 
-pub async fn dump_conn_map(conn_map: Arc<Mutex<ConnectionHandleMap>>) {
+pub async fn dump_conn_map(conn_map: Arc<Mutex<EchoHandleMap>>) {
     log::debug!("dump_conn_map - started");
     for connection_handle in conn_map.lock().await.values() {
         log::debug!("{}", connection_handle);
