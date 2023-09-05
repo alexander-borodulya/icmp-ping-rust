@@ -1,7 +1,7 @@
 use crate::{
     cli_args::CliArgs,
     config::Config,
-    connection_handle::{ConnectionHandle, EchoStatus},
+    echo_handle::{EchoHandle, EchoStatus},
     ping_net::PingNet,
     utils::{self},
 };
@@ -56,21 +56,18 @@ enum TaskId {
 
 const MPSC_CHANNEL_SIZE: usize = 10;
 
-pub type ConnectionHandleMap = HashMap<u16, ConnectionHandle>;
+pub type EchoHandleMap = HashMap<u16, EchoHandle>;
 
 type Result<T, E = RunError> = std::result::Result<T, E>;
 type EchoSubTaskResult<T, E = RunError> = std::result::Result<T, E>;
-type RecvFutureOutputType = (
-    u16,
-    Timeout<JoinHandle<EchoSubTaskResult<ConnectionHandle>>>,
-);
+type RecvFutureOutputType = (u16, Timeout<JoinHandle<EchoSubTaskResult<EchoHandle>>>);
 type MpscSendOutputType = u16;
 type MpscRecvOutputType = Pin<Box<dyn Future<Output = RecvFutureOutputType> + Send>>;
 
 pub struct PingApp {
     config: Arc<Config>,
     identifier: u16,
-    conn_map: Arc<Mutex<ConnectionHandleMap>>,
+    conn_map: Arc<Mutex<EchoHandleMap>>,
 }
 
 impl PingApp {
@@ -158,7 +155,7 @@ impl PingApp {
                         let recv_future_result = match recv_future_timed_result {
                             Ok(recv_future_result) => recv_future_result,
                             Err(err) => {
-                                println!("{},{},time out", destination_ipv4, seq_num_recv);
+                                println!("{},{},timeout", destination_ipv4, seq_num_recv);
                                 log::warn!("[ELAPSED] task_recv: recv_future_timed_task: seq_num_recv: {}, Elapsed: {:?}", seq_num_recv, err);
 
                                 // Update map - On elapsed
@@ -199,7 +196,7 @@ impl PingApp {
 
                         let recv_subtask_result = match recv_result {
                             Ok(conn_handle_recv) => {
-                                println!("{}", conn_handle_recv);
+                                println!("{}", conn_handle_recv.to_output_format());
                                 log::info!("[DONE] recv_channel_task: recv_future_timed_task: seq_num_recv: {} ready: {}", seq_num_recv, conn_handle_recv);
                                 (seq_num_recv, EchoStatus::Received)
                             }
@@ -270,7 +267,7 @@ impl PingApp {
 
                         let send_future = async move {
                             let earlier = Instant::now();
-                            let conn_handle = ConnectionHandle::new(
+                            let conn_handle = EchoHandle::new(
                                 destination_ipv4,
                                 seq_num_send,
                                 identifier,
@@ -298,7 +295,7 @@ impl PingApp {
                                 .expect("Send Failed");
 
                             let now = Instant::now();
-                            ConnectionHandle::new(
+                            EchoHandle::new(
                                 destination_ipv4,
                                 seq_num_send,
                                 identifier,
@@ -312,7 +309,7 @@ impl PingApp {
                         let connection_handle_send = match send_future_timed {
                             Ok(send_future_result) => send_future_result,
                             Err(err) => {
-                                println!("{},{},time out", destination_ipv4, seq_num_send);
+                                println!("{},{},timeout", destination_ipv4, seq_num_send);
                                 log::warn!("send_channel_task: send_future_timed_task: seq_num_send: {}, Elapsed: {:?}", seq_num_send, err);
 
                                 // Update map - On elapsed
@@ -423,7 +420,7 @@ impl PingApp {
         })
     }
 
-    pub fn conn_map(&self) -> Arc<Mutex<ConnectionHandleMap>> {
+    pub fn conn_map(&self) -> Arc<Mutex<EchoHandleMap>> {
         Arc::clone(&self.conn_map)
     }
 }
